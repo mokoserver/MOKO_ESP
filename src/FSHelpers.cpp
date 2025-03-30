@@ -1,19 +1,42 @@
-// src/FSHelpers.cpp
 #include "FSHelpers.h"
 #include <Arduino.h>
 
-void initializeFileSystem() {
-  if (!SPIFFS.begin()) {
+bool initializeFileSystem() {
+  if (!LittleFS.begin()) {
     Serial.println("Ошибка монтирования файловой системы!");
-    return;
+    return false;
   }
+  
   Serial.println("Файловая система инициализирована");
+  
+  // Создаем обязательные файлы, если их нет
+  if (!LittleFS.exists("/index.html")) {
+    File f = LittleFS.open("/index.html", "w");
+    if (f) {
+      f.println("<html><body><h1>Default Page</h1></body></html>");
+      f.close();
+      Serial.println("Создан default index.html");
+    }
+  }
+  
+  if (!LittleFS.exists("/style.css")) {
+    File f = LittleFS.open("/style.css", "w");
+    if (f) {
+      f.println("body { font-family: Arial; }");
+      f.close();
+      Serial.println("Создан default style.css");
+    }
+  }
+  
   checkFileSystem();
+  return true;
 }
+
+// Остальные функции остаются аналогичными, но с заменой SPIFFS на LittleFS
 
 void listFiles() {
   Serial.println("\nСодержимое файловой системы:");
-  Dir dir = SPIFFS.openDir("/");
+  Dir dir = LittleFS.openDir("/");
   while (dir.next()) {
     Serial.print("  ");
     Serial.print(dir.fileName());
@@ -29,12 +52,12 @@ void readFile(const char* path) {
   Serial.print("\nЧтение файла ");
   Serial.println(path);
   
-  if (!SPIFFS.exists(path)) {
+  if (!LittleFS.exists(path)) {
     Serial.println("  Файл не найден!");
     return;
   }
 
-  File file = SPIFFS.open(path, "r");
+  File file = LittleFS.open(path, "r");
   if (!file) {
     Serial.println("  Ошибка открытия файла!");
     return;
@@ -52,8 +75,8 @@ void checkFileSystem() {
   
   const char* requiredFiles[] = {"/index.html", "/style.css"};
   for (const char* file : requiredFiles) {
-    if (SPIFFS.exists(file)) {
-      File f = SPIFFS.open(file, "r");
+    if (LittleFS.exists(file)) {
+      File f = LittleFS.open(file, "r");
       Serial.printf("%s найден (%d байт)\n", file, f.size());
       f.close();
     } else {
@@ -62,7 +85,7 @@ void checkFileSystem() {
   }
   
   FSInfo fs_info;
-  if (SPIFFS.info(fs_info)) {
+  if (LittleFS.info(fs_info)) {
     Serial.printf("\nВсего места: %d байт\n", fs_info.totalBytes);
     Serial.printf("Использовано: %d байт\n", fs_info.usedBytes);
   }
