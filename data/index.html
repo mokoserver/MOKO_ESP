@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WiFi Configuration</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>WiFi Configuration</h1>
+        <form action="/save" method="POST">
+            <div class="form-group">
+                <label for="ssid">Network Name (SSID)</label>
+                <input type="text" id="ssid" name="ssid" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit">Save Settings</button>
+        </form>
+    </div>
+</body>
+</html>
