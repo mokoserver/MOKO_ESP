@@ -3,23 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WiFi Configuration</title>
+    <title>ESP8266 Control Panel</title>
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
     <div class="container">
-        <h1>WiFi Configuration</h1>
-        <form action="/save" method="POST">
-            <div class="form-group">
-                <label for="ssid">Network Name (SSID)</label>
-                <input type="text" id="ssid" name="ssid" required>
+        <!-- Блок 1: Таблица GPIO -->
+        <div class="block">
+            <h2>GPIO Status</h2>
+            <table class="gpio-table">
+                <thead>
+                    <tr>
+                        <th>Pin</th>
+                        <th>Mode</th>
+                        <th>Value</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>D0</td>
+                        <td>INPUT</td>
+                        <td>LOW</td>
+                        <td><button class="gpio-btn">Toggle</button></td>
+                    </tr>
+                    <!-- Добавьте больше строк по необходимости -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Блок 2: Лог запросов -->
+        <div class="block">
+            <h2>Request Monitor</h2>
+            <div class="request-log" id="requestLog">
+                <!-- Сюда будут добавляться запросы через JavaScript -->
+                <div class="log-entry">Waiting for requests...</div>
             </div>
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required>
-            </div>
-            <button type="submit">Save Settings</button>
-        </form>
+        </div>
+
+        <!-- Блок 3: Настройки WiFi -->
+        <div class="block">
+            <h2>WiFi Configuration</h2>
+            <form action="/save" method="POST">
+                <div class="form-group">
+                    <label for="ssid">Network Name (SSID)</label>
+                    <input type="text" id="ssid" name="ssid" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit">Save Settings</button>
+            </form>
+        </div>
     </div>
+
+    <script>
+        // Простой пример для логирования запросов
+        function logRequest(method, data) {
+            const logElement = document.getElementById('requestLog");
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = `${new Date().toLocaleTimeString()}: ${method} - ${JSON.stringify(data)}`;
+            logElement.prepend(entry);
+            
+            // Ограничиваем количество записей
+            if (logElement.children.length > 10) {
+                logElement.removeChild(logElement.lastChild);
+            }
+        }
+        
+        // В реальном проекте здесь будет WebSocket или AJAX для получения данных
+    </script>
 </body>
 </html>

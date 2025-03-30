@@ -4,6 +4,7 @@
     --background-color: #f5f5f5;
     --text-color: #333;
     --error-color: #e74c3c;
+    --border-color: #ddd;
 }
 
 * {
@@ -21,20 +22,83 @@ body {
 }
 
 .container {
-    max-width: 500px;
+    max-width: 900px;
     margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+
+.block {
     background: white;
-    padding: 30px;
+    padding: 25px;
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
-h1 {
-    text-align: center;
-    margin-bottom: 30px;
+h1, h2 {
     color: var(--primary-color);
+    margin-bottom: 20px;
 }
 
+h1 {
+    text-align: center;
+    grid-column: 1 / -1;
+}
+
+/* Стили для таблицы GPIO */
+.gpio-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 15px;
+}
+
+.gpio-table th, 
+.gpio-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.gpio-table th {
+    background-color: var(--background-color);
+}
+
+.gpio-btn {
+    padding: 6px 12px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.gpio-btn:hover {
+    background-color: var(--secondary-color);
+}
+
+/* Стили для лога запросов */
+.request-log {
+    height: 200px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 10px;
+    background-color: #fafafa;
+    font-family: monospace;
+}
+
+.log-entry {
+    padding: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.log-entry:last-child {
+    border-bottom: none;
+}
+
+/* Стили формы (оставлены как были) */
 .form-group {
     margin-bottom: 20px;
 }
@@ -49,7 +113,7 @@ input[type="text"],
 input[type="password"] {
     width: 100%;
     padding: 12px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     font-size: 16px;
     transition: border 0.3s;
@@ -61,7 +125,7 @@ input[type="password"]:focus {
     outline: none;
 }
 
-button {
+button[type="submit"] {
     width: 100%;
     padding: 12px;
     background-color: var(--primary-color);
@@ -73,17 +137,27 @@ button {
     transition: background-color 0.3s;
 }
 
-button:hover {
+button[type="submit"]:hover {
     background-color: var(--secondary-color);
 }
 
-/* Mobile styles */
-@media (max-width: 600px) {
+/* Адаптивность */
+@media (min-width: 768px) {
     .container {
-        padding: 20px;
+        grid-template-columns: repeat(2, 1fr);
     }
     
-    body {
-        padding: 10px;
+    .block:last-child {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (min-width: 1024px) {
+    .container {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .block:last-child {
+        grid-column: auto;
     }
 }
