@@ -21,10 +21,17 @@ void setup() {
   } else if (WiFi.status() == WL_CONNECTED) {
     Serial.println("Web interface: http://" + WiFi.localIP().toString());
   }
+  webSocket.begin();
+  webSocket.onEvent([](uint8_t num, WStype_t type, uint8_t* payload, size_t length) {
+    if (type == WStype_TEXT) {
+      Serial.printf("[%u] Received: %s\n", num, payload);
+    }
+  });
 }
 
 void loop() {
   server.handleClient();
+  webSocket.loop();
   
   static unsigned long lastIPprint = 0;
   if (millis() - lastIPprint > 60000) {

@@ -1,47 +1,36 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ESP8266 Control Panel</title>
-    <link rel="stylesheet" href="/style.css">
+    <title>ESP8266 WebSocket Monitor</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <h1>ESP8266 WebSocket Monitor</h1>
+    
     <div class="container">
-        <!-- Блок 1: Таблица GPIO -->
         <div class="block">
-            <h2>GPIO Status</h2>
-            <table class="gpio-table">
-                <thead>
-                    <tr>
-                        <th>Pin</th>
-                        <th>Mode</th>
-                        <th>Value</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>D0</td>
-                        <td>INPUT</td>
-                        <td>LOW</td>
-                        <td><button class="gpio-btn">Toggle</button></td>
-                    </tr>
-                    <!-- Добавьте больше строк по необходимости -->
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Блок 2: Лог запросов -->
-        <div class="block">
-            <h2>Request Monitor</h2>
+            <div class="log-header">
+                <h2>Request Log</h2>
+                <button class="clear-log-btn" id="clearLogButton">Clear Log</button>
+            </div>
             <div class="request-log" id="requestLog">
-                <!-- Сюда будут добавляться запросы через JavaScript -->
-                <div class="log-entry">Waiting for requests...</div>
+                <div class="log-entry">Connecting to WebSocket server...</div>
+            </div>
+            
+            <div class="control-panel">
+                <h3>Send Custom JSON</h3>
+                <div class="json-input">
+                    <textarea id="jsonInput" placeholder='{"command":"test","value":123}'>{"test":"value"}</textarea>
+                </div>
+                <div class="button-group">
+                    <button id="sendButton">Send Custom JSON</button>
+                    <button id="testButton">Send Test JSON</button>
+                </div>
             </div>
         </div>
-
-        <!-- Блок 3: Настройки WiFi -->
+        
         <div class="block">
             <h2>WiFi Configuration</h2>
             <form action="/save" method="POST">
@@ -59,21 +48,147 @@
     </div>
 
     <script>
-        // Простой пример для логирования запросов
-        function logRequest(method, data) {
-            const logElement = document.getElementById('requestLog");
+        const logElement = document.getElementById('requestLog');
+        const sendButton = document.getElementById('sendButton');
+        const testButton = document.getElementById('testButton');
+        const clearLogButton = document.getElementById('clearLogButton');
+        const jsonInput = document.getElementById('jsonInput');
+        let socket;
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 5;
+
+        function addLogEntry(message, data = null) {
             const entry = document.createElement('div');
             entry.className = 'log-entry';
-            entry.textContent = `${new Date().toLocaleTimeString()}: ${method} - ${JSON.stringify(data)}`;
+            
+            const timeElement = document.createElement('div');
+            timeElement.className = 'log-time';
+            timeElement.textContent = new Date().toLocaleTimeString();
+            
+            const dataElement = document.createElement('div');
+            dataElement.className = 'log-data';
+            
+            if (data) {
+                try {
+                    const jsonData = JSON.parse(data);
+                    dataElement.textContent = JSON.stringify(jsonData, null, 2);
+                } catch (e) {
+                    dataElement.textContent = data;
+                }
+            } else {
+                dataElement.textContent = message;
+            }
+            
+            entry.appendChild(timeElement);
+            entry.appendChild(dataElement);
             logElement.prepend(entry);
             
-            // Ограничиваем количество записей
-            if (logElement.children.length > 10) {
+            if (logElement.children.length > 20) {
                 logElement.removeChild(logElement.lastChild);
             }
         }
-        
-        // В реальном проекте здесь будет WebSocket или AJAX для получения данных
+
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+            const wsUri = protocol + window.location.hostname + ':81';
+            
+            socket = new WebSocket(wsUri);
+
+            socket.onopen = function() {
+                addLogEntry("WebSocket connection established");
+                reconnectAttempts = 0;
+            };
+
+            socket.onmessage = function(event) {
+                addLogEntry("Received data:", event.data);
+            };
+
+            socket.onclose = function(event) {
+                if (event.wasClean) {
+                    addLogEntry(`Connection closed cleanly, code=${event.code}, reason=${event.reason}`);
+                } else {
+                    addLogEntry('Connection interrupted');
+                }
+                
+                if (reconnectAttempts < maxReconnectAttempts) {
+                    reconnectAttempts++;
+                    const delay = Math.min(5000, reconnectAttempts * 1000);
+                    addLogEntry(`Attempting to reconnect (${reconnectAttempts}/${maxReconnectAttempts})...`);
+                    setTimeout(connectWebSocket, delay);
+                } else {
+                    addLogEntry('Max reconnection attempts reached');
+                }
+            };
+
+            socket.onerror = function(error) {
+                addLogEntry('WebSocket error: ' + error.message);
+            };
+        }
+
+        function sendJsonData(jsonString) {
+            try {
+                JSON.parse(jsonString);
+                
+                fetch('/api/log', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: jsonString
+                })
+                .then(response => response.json())
+                .then(data => {
+                    addLogEntry("Request successful:", JSON.stringify(data));
+                })
+                .catch(error => {
+                    addLogEntry("Request failed: " + error.message);
+                });
+                
+            } catch (e) {
+                addLogEntry("Invalid JSON: " + e.message);
+            }
+        }
+
+        clearLogButton.addEventListener('click', function() {
+            logElement.innerHTML = '<div class="log-entry">Log cleared</div>';
+            addLogEntry("Log cleared by user");
+        });
+
+        sendButton.addEventListener('click', function() {
+            const jsonData = jsonInput.value.trim();
+            if (jsonData) {
+                addLogEntry("Sending custom JSON...");
+                sendJsonData(jsonData);
+            } else {
+                addLogEntry("Please enter JSON data");
+            }
+        });
+
+        testButton.addEventListener('click', function() {
+            const testData = {
+                action: "test",
+                value: Math.random().toFixed(4),
+                timestamp: new Date().toISOString(),
+                source: "browser"
+            };
+            jsonInput.value = JSON.stringify(testData, null, 2);
+            addLogEntry("Sending test JSON...");
+            sendJsonData(JSON.stringify(testData));
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            connectWebSocket();
+            addLogEntry("System initialized");
+            
+            jsonInput.value = JSON.stringify({
+                "command": "test",
+                "parameters": {
+                    "value": 123,
+                    "mode": "auto"
+                },
+                "timestamp": new Date().toISOString()
+            }, null, 2);
+        });
     </script>
 </body>
 </html>

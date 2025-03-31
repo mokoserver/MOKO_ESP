@@ -1,9 +1,80 @@
 #include "WebServer.h"
 #include "WiFiConfig.h"
 #include <LittleFS.h>
+#include <ArduinoJson.h>
 
 // Определяем сервер
 ESP8266WebServer server(80);
+WebSocketsServer webSocket(81);
+String lastRequestJson = "Waiting for requests...";
+
+void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
+  switch(type) {
+    case WStype_DISCONNECTED:
+      Serial.printf("[%u] Disconnected!\n", num);
+      break;
+      
+    case WStype_CONNECTED: {
+      IPAddress ip = webSocket.remoteIP(num);
+      Serial.printf("[%u] Connected from %d.%d.%d.%d\n", num, ip[0], ip[1], ip[2], ip[3]);
+      // Отправляем текущее состояние новому клиенту
+      webSocket.sendTXT(num, lastRequestJson);
+      break;
+    }
+      
+    case WStype_TEXT:
+      // Можно добавить обработку входящих сообщений
+      break;
+      
+    default:
+      // Остальные типы не обрабатываем
+      break;
+  }
+}
+
+void handleApiPost() {
+  if (!server.hasArg("plain")) {
+    server.send(400, "text/plain", "No data received");
+    return;
+  }
+
+  lastRequestJson = server.arg("plain");
+  Serial.printf("Received JSON: %s\n", lastRequestJson.c_str());
+  
+  // Отправляем подтверждение
+  server.send(200, "application/json", "{\"status\":\"success\"}");
+
+  // Рассылаем всем подключенным клиентам
+  webSocket.broadcastTXT(lastRequestJson);
+}
+
+
+void handleEvents() {
+  Serial.println("SSE Client connected");
+  
+  server.sendHeader("Content-Type", "text/event-stream");
+  server.sendHeader("Cache-Control", "no-cache");
+  server.sendHeader("Connection", "keep-alive");
+  
+  String data = "data: " + lastRequestJson + "\n\n";
+  server.sendContent(data);
+}
+
+void initWebServer() {
+  server.on("/", handleRoot);
+  server.on("/style.css", handleCSS);
+  server.on("/save", handleSave);
+  
+  server.on("/api/log", HTTP_POST, []() {
+    server.collectHeaders("Content-Type", "Content-Length");
+    handleApiPost();
+  });
+  
+  server.begin();
+  webSocket.begin();
+  webSocket.onEvent(webSocketEvent);
+  Serial.println("HTTP server and WebSocket started");
+}
 
 void handleRoot() {
   if (!LittleFS.exists("/index.html")) {
@@ -59,13 +130,4 @@ void handleSave() {
   
   // Пытаемся подключиться к новой сети
   setWiFiMode(false);
-}
-
-void initWebServer() {
-  server.on("/", handleRoot);
-  server.on("/style.css", handleCSS);
-  server.on("/save", handleSave);
-  
-  server.begin();
-  Serial.println("HTTP server started");
 }
