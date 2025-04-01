@@ -3,10 +3,17 @@
 
 bool initializeFileSystem() {
   if (!LittleFS.begin()) {
+    Serial.println(" ");
+    Serial.println(" ");
+    Serial.println("********************************* ");
+    Serial.println(" ");
     Serial.println("Ошибка монтирования файловой системы!");
     return false;
   }
-  
+  Serial.println(" ");
+  Serial.println(" ");
+  Serial.println("********************************* ");
+  Serial.println(" ");
   Serial.println("Файловая система инициализирована");
   
   // Создаем обязательные файлы, если их нет
