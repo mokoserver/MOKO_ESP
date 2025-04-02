@@ -74,14 +74,13 @@ void initWebServer() {
   server.begin();
   webSocket.begin();
   webSocket.onEvent(webSocketEvent);
-  Serial.println("HTTP server and WebSocket started");
+  Serial.println("HTTP server started");
+}
 
-  ArduinoOTA.setHostname("esp8266-ota");
-
-  //ArduinoOTA.setPassword("admin123");  // Должен совпадать с upload_flags!
-  //ArduinoOTA.setPort(3232);  // Явно указываем порт
-  //ArduinoOTA.begin();
-  //Serial.println("OTA server started");
+void initWebSocket() {
+  webSocket.begin();
+  webSocket.onEvent(webSocketEvent);
+  Serial.println("WebSocket started");
 }
 
 void handleRoot() {

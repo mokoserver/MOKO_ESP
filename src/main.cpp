@@ -10,23 +10,18 @@ void setup() {
     Serial.println("Не удалось инициализировать файловую систему. Работа невозможна.");
     while (true) {}
   }
+  
   listFiles();  // Выведет список файлов в Serial Monitor
   initWiFi();
   initWebServer();
-
-  Serial.println("\nВеб-сервер запущен");
+  initWebSocket();
   
   if (WiFi.getMode() & WIFI_AP) {
     Serial.println("AP interface: http://" + WiFi.softAPIP().toString());
   } else if (WiFi.status() == WL_CONNECTED) {
     Serial.println("Web interface: http://" + WiFi.localIP().toString());
   }
-  webSocket.begin();
-  webSocket.onEvent([](uint8_t num, WStype_t type, uint8_t* payload, size_t length) {
-    if (type == WStype_TEXT) {
-      Serial.printf("[%u] Received: %s\n", num, payload);
-    }
-  });
+
 }
 
 void loop() {
