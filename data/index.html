@@ -7,9 +7,17 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>ESP8266 WebSocket Monitor ver. 0.0.2</h1>
+    <div class="header-container">
+        <h1>ESP8266 WebSocket Monitor ver. 0.0.2</h1>
+        <div class="connection-status">
+            <span id="wsStatus" class="status-dot disconnected">●</span>
+            <span id="wsStatusText">Disconnected</span>
+            <button id="reconnectButton" class="reconnect-btn">Reconnect</button>
+        </div>
+    </div>
     
     <div class="container">
+        <!-- Остальное содержимое остается без изменений -->
         <div class="block">
             <div class="log-header">
                 <h2>Request Log</h2>
@@ -53,9 +61,22 @@
         const testButton = document.getElementById('testButton');
         const clearLogButton = document.getElementById('clearLogButton');
         const jsonInput = document.getElementById('jsonInput');
+        const wsStatus = document.getElementById('wsStatus');
+        const wsStatusText = document.getElementById('wsStatusText');
+        const reconnectButton = document.getElementById('reconnectButton');
         let socket;
         let reconnectAttempts = 0;
         const maxReconnectAttempts = 5;
+
+        function updateConnectionStatus(connected) {
+            if (connected) {
+                wsStatus.className = 'status-dot connected';
+                wsStatusText.textContent = 'Connected';
+            } else {
+                wsStatus.className = 'status-dot disconnected';
+                wsStatusText.textContent = 'Disconnected';
+            }
+        }
 
         function addLogEntry(message, data = null) {
             const entry = document.createElement('div');
@@ -97,6 +118,7 @@
             socket.onopen = function() {
                 addLogEntry("WebSocket connection established");
                 reconnectAttempts = 0;
+                updateConnectionStatus(true);
             };
 
             socket.onmessage = function(event) {
@@ -104,6 +126,7 @@
             };
 
             socket.onclose = function(event) {
+                updateConnectionStatus(false);
                 if (event.wasClean) {
                     addLogEntry(`Connection closed cleanly, code=${event.code}, reason=${event.reason}`);
                 } else {
@@ -121,6 +144,7 @@
             };
 
             socket.onerror = function(error) {
+                updateConnectionStatus(false);
                 addLogEntry('WebSocket error: ' + error.message);
             };
         }
@@ -174,6 +198,15 @@
             jsonInput.value = JSON.stringify(testData, null, 2);
             addLogEntry("Sending test JSON...");
             sendJsonData(JSON.stringify(testData));
+        });
+
+        reconnectButton.addEventListener('click', function() {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.close();
+            }
+            reconnectAttempts = 0;
+            addLogEntry("Manual reconnection initiated...");
+            connectWebSocket();
         });
 
         document.addEventListener('DOMContentLoaded', function() {
